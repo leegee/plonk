@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+
+<html lang='en'>
+<head>
+	<title>Lee Goddard .net - Just Another Boring Hompage - Beta</title>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta charset="utf-8">
+	
+	<link rel="SHORTCUT ICON" href="http://www.leegoddard.net/favicon.ico"/>
+	
+	<meta name="author" content="Lee Goddard (http://www.leegoddard.net/)" />
+	<meta name="copyright" content="Copyright (c) 2011 Lee Goddard" />
+	<meta name="description" content="Lee Goddard's personal homepage -- Perl, JavaScript, Project Management"/>
+	<meta name="keywords" content="lee goddard, goddard, godard, perl, javascript, website, design, development, project management, java, css, html, html5"/>
+
+	<link rel="stylesheet" type="text/css" href="/_/css/general.css" />
+</head>
+<body>
+	<header>
+		<hgroup>
+			<h1>Lee Goddard .net &mdash; another boring personal homepage</h1>
+			<nav>
+				<ul>
+					<li><a href="/wp">Old WordPress</a></li>
+					<li><a href="/cv/cv.pdf">CV</a></li>
+					<li><a href="mailto:leegee@gmail.com">Contact</a></li>
+				</ul>
+			</nav>
+		</hgroup>
+	</header>
+
+
+	<section  class='light'>
+	<article>
+<H2 CLASS="western">Sunday</H2>
+<P>When looking for something to impplement using HTML5 Web Sockets,
+other than a chat server, I came across Plink, by the Swedish compnay
+DinahMoe, and so ripped-off the idea.</P>
+<P>When watching Plink, it seemed obvious to implement it as ... a
+chat server, in as much a number of users are linked to a
+persistent-state server, that relays each users messages to all other
+users, in real time. The interesting thing about Plink is that the
+messages are musical sounds.</P>
+<H2 CLASS="western">Monday: Relay Server</H2>
+<P>The first task was to write or find a
+Web Socket relay server. Node.js seemed the obvious choice, but
+support for Web Sockets in Node.js is patchy, and as I wanted to play
+with the latest version of the specification, I had only the
+web-socket library to look at. Unfortunately, this failed to build on
+OS X, and the support response was 'your need Xcode,' which I have
+had since buying the Mac.</P>
+<P>I thought of trolling through the Maven
+repositories for something suitable, but on my way there checked what
+Perl had to offer. After getting side-tracked by the usual Perl
+half-baked or badly documented implementations, I found that
+Mojolicious has a simple WS daemon that can run out of the box. It
+took literally five minutes to install the package and have the relay
+up and running – a fraction of the time it took to find the
+library.</P>
+<P><BR>
+</P>
+<P>#!/usr/bin/perl 
+</P>
+<P>use strict;</P>
+<P>use warnings;</P>
+<P><BR>
+</P>
+<P>use lib qw( ../lib lib );</P>
+<P>use Mojolicious::Lite;</P>
+<P><BR>
+</P>
+<P># use Data::Dumper;</P>
+<P><BR>
+</P>
+<P>my $clients_tx = {};</P>
+<P>my $clients_cursors = {};</P>
+<P>    
+</P>
+<P>websocket '/' =&gt; sub {</P>
+<P>	my $self = shift;</P>
+<P>	my $client_id = sprintf &quot;%s&quot;,
+$self-&gt;tx;</P>
+<P>	$clients_tx-&gt;{$client_id} = { tx =&gt;
+$self-&gt;tx };</P>
+<P><BR>
+</P>
+<P>	$self-&gt;on(message =&gt; sub {</P>
+<P>		my ($self, $msg) = @_;</P>
+<P>		# warn $msg;</P>
+<P>		my ($x, $y, $pitch) = split/,/, $msg;</P>
+<P>		if (defined $y){</P>
+<P>			$clients_cursors-&gt;{ $client_id
+}-&gt;{xy} = [$x+0, $y+0];</P>
+<P>			$clients_cursors-&gt;{ $client_id
+}-&gt;{pitch} = $pitch ne ''? $pitch+0 : undef;</P>
+<P>			# warn Dumper( $clients_cursors );</P>
+<P>			for my $i (keys %$clients_tx) {</P>
+<P>				$clients_tx-&gt;{$i}-&gt;{tx}-&gt;send(</P>
+<P>					Mojo::JSON-&gt;new-&gt;encode({ 
+</P>
+<P>						cursors =&gt; $clients_cursors</P>
+<P>					})</P>
+<P>				);</P>
+<P>			}</P>
+<P>		}</P>
+<P>	});</P>
+<P>	</P>
+<P>	$self-&gt;on(finish =&gt; sub {</P>
+<P>		delete $clients_tx-&gt;{$client_id};</P>
+<P>		delete
+$clients_cursors-&gt;{$client_id};</P>
+<P>	});</P>
+<P>};</P>
+<P><BR>
+</P>
+<P>app-&gt;start; 
+</P>
+<P>__END__</P>
+<P><BR>
+</P>
+<P>The code simply receives a CSV of three
+numbers representing the cursor position and selected pitch, which it
+stores for each connected client.  Every time a client sends this
+information, the server responds with the latest copy of the
+information for all clients.</P>
+<H3 CLASS="western">Prototype 1</H3>
+<P>The first stage of the prototype was boiler plate – setting up
+an Apache virtual server, creating directories to hold JS and CSS,
+and a basic HTML5 document to pull in Mootools, Modernizer, the blank
+application CSS file, and a fresh Mootools class definition, the
+latter linked to an element in the body of the page into which the
+app could insert itelf.</P>
+<P>Capturing mouse movement events is straight forward, and once
+their offsets are removed, I was ready to send the co-ordinates to
+the server. When jotting down the server code, above, I had already
+decided to send both co-ordinates and pitch information, as I wasn't
+quite sure how I would implement the functionality of the app, and
+wanted to leave my options open. I've been a victim of premature
+optimisation in the past.</P>
+<P>Next I had to find the Web Socket API. There are many examples of
+this lying around the net, and it took only a minute to implement the
+necessary callbacks, and have the server logging connections and
+messages, and the client console logging what it was sending and
+receiving.</P>
+<P>After adding to my websocket .message callback some code to render
+a circle at the co-ordinates specified in the message, I could see a
+mess under my cursor whenever I moved it.</P>
+<P>Next came my only implementation error – at least, the only one
+I have noticed.</P>
+<P>Plink shows the current note the user is playing as a circle on
+the screen, but also shows past notes as scrolling horizontally away
+from the cursor: very pretty. I remember implementing horizontal
+scrolling for games on a Vic-20 in the early 1980s, and the fastest
+way of doing it then was to shift a block of memory by the number of
+bytes to be scrolled, an operation easily and quickly done even then,
+by a ten-year old.</P>
+<P>HTML5 is not so simple, and the canvas element still lacks a
+built-in scrolling function. This left four choices: two involved
+dropping the canvas, in favour of either SVG or WebGL; I've played
+with both, and found basic operation in both to be similarly
+straight-forward: in both cases, I would for every 'note' create an
+object that could be rendered. The other option was to do this for
+the canvas, and wipe it between every rendering, or to attempt to
+copy the canvas element, wipe the original, and render the copy one
+pixel to the left.</P>
+<P>My thoughts were that the latter would be the simplest, and
+closest to the pattern I had learnt as a kid.</P>
+<P><BR><BR>
+</P>
+<P>	scroll: function(){</P>
+<P>		var destinationCanvas = this.canvas.clone()</P>
+<P>		destinationCanvas.cloneEvents( this.canvas, 'mousemove');</P>
+<P>		var destCtx = destinationCanvas.getContext('2d');</P>
+<P>		destCtx.drawImage(</P>
+<P>			this.canvas, 
+</P>
+<P>			(this.options.scrollPx)*-1, 
+</P>
+<P>			0</P>
+<P>		);</P>
+<P>		destinationCanvas.replaces( this.canvas );</P>
+<P>		this.canvas.destroy();</P>
+<P>		this.canvas = destinationCanvas;</P>
+<P>		this.ctx		= destCtx;</P>
+<P>	},</P>
+<P>	</P>
+<P><BR><BR>
+</P>
+<P>I hooked the above method up to a timer, via Mootools .periodial
+method, and was mildly pleased to see a trail from cursor,
+disappearing off the edge of my screen. 
+</P>
+<H2 CLASS="western">Prototype 2 
+</H2>
+<P>Before the day ended, I wanted to hear sounds, and as I browsed
+for API notes and implementation examples, I noticed my fan buzzing,
+and Mozilla getting sluggish. I flicked, slowly, through my tabs, and
+found the Plink rip-off crawling. I killed the server, closed the
+tab, and everything was fine. I still don't know exactly what the
+problem was: I tried minimising the rate messages were sent to the
+server, and the frequency of canvas renderings, but in the end went
+to have tea, and gave up for the day.</P>
+<H1 CLASS="western">Tuesday</H1>
+<P>For some reason I felt an attachment to the canvas copying method,
+but dropped it all the same, and had the .message handler push the
+latest batch of JSON objects onto a stack. I then rewrote the
+periodical scroll method to render everything on the stack, making
+the latest object appear on the right, decrementing everything by one
+cursor width, and dropping from the stack anything that would fall
+the screen. This removed the performance problem, and reinforced my
+desire for a native canvas.scroll method.</P>
+<H2 CLASS="western">Web Audio API</H2>
+<P>In my experiments writing an audio sequencer for SoundCloud files,
+I learn the limitations of the HTML5 audio element – it is to the
+Audio API as the video element is to the Web Graphics Library. So, I
+found a decent introduction to the Audio API, on HTML5Doctor, and had
+sound within a few minutes, hooked up in a new periodical method. I
+had the .send method calculate pitch by computing within which of a
+number zones the vertical position of the mouse fell, and then spent
+an hour find sounds in Logic, and exporting individual notes as wav
+files, loaded into buffers stored in arrays, whose indexes could be
+accessed by the 'pitch' index sent to the server.</P>
+<P>Plink has a percussion track, so I extended the sound-firing
+method to play the drums as appropriate:</P>
+<P>	options: {</P>
+<P>	…</P>
+<P>		percussion: {</P>
+<P>			kick:  [[4,1]],</P>
+<P>			snare: [[8,1], [16,2]],</P>
+<P>			hat_closed: []</P>
+<P>		}</P>
+<P>	}</P>
+<P><BR><BR>
+</P>
+<P>		self.percNames.each( function(instrument){</P>
+<P>			self.options.percussion[instrument].each( function(i){</P>
+<P>				console.log( instrument +' '+ self.pulseNumber +' '+ i[0] +'
+'+i[1]);</P>
+<P>				if (self.pulseNumber % i[0] == i[1]){</P>
+<P>					self.playNow( self.percBuffers[instrument] );</P>
+<P>					self.scaleCursor += self.options.cursorScaleIncrement;</P>
+<P>				}</P>
+<P>			});</P>
+<P>		});</P>
+<P><BR><BR>
+</P>
+<P>Notice that routine also changes the cursor size, as in Plink, so
+the visual echo of the sound reflects the unerlying rhythm.</P>
+<P>My children then took over the development machine for beta
+testing, and I joined in on the old media centre PC, on which I had
+to install Chrome, which seems to be the only limitation of the
+project, other than my inability to find a free host for my
+web-socket relay code: my current ISP is too cheap to provide this.</P>
+<P>I was quite pleased with the effort, and dropped a line to the
+address Dinahmoe publicised for job applicants, but no word yet:
+perhaps they realise Plink isn't that hard to do. Whilst I was there
+I had a quite look at the Plink source code, and was only mildly
+horrified, mainly by the amount of hard-coding, lack of framework,
+and lack of white-space. 
+</P>
+<H2 CLASS="western">Wednesday</H2>
+<P>I then added the ability to change patches, as in Plink, as well
+as some options to have the horizontal cursor position equate to
+volume and panning – two options the children found far from
+intuitive, and quite intrusive into their play.</P>
+<P>Also added the ability for patches to only sound if pre-required,
+much in the manner of the percussion track.</P>
+<H2 CLASS="western">Next</H2>
+<UL>
+	<LI><P>Move the patches into objects, for ease of legibility and
+	maintenance.</P>
+	<LI><P>Maybe switch to WebGl, just for fun. 
+	</P>
+	<LI><P>Find a way of playing like this for money.</P>
+</UL>
+
+
+</article>
+</section>
+</body>
+</html>
+
