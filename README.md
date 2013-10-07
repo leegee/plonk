@@ -16,3 +16,5 @@ The server code is simply
 for demo purposes, basically a chat server, and comes in two versions, node.js, and Perl Mojolicious.
 
 `index.html` should give a good idea of how to use the client, and both the Perl and Node code is straight-forward.
+
+`writeup/` contains the notes I wrote as I wrote the code.
