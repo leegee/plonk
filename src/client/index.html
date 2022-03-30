@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+	<title>HTML 5 Audio Experiment 2: Plonk</title>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge">
+
+	<link href="css/plonk.css" media="screen" type="text/css" rel="stylesheet">
+
+	<script type="text/javascript" src="js/BufferLoader.js"></script>
+	<script type="text/javascript" src="js/Plonk.js"></script>
+
+	<script type='text/javascript'>
+		window.addEvent('DOMContentLoaded', () => {
+			new Plonk({
+				element: 'app-container',
+				xcontrolsElement: 'xcontrols',
+				fillWindow: true,
+				wsUri: 'ws://127.0.0.1:3000/'
+			});
+		});
+	</script>
+</head>
+
+<body>
+	<header id="masthead" role="banner">
+		<h1>Plonk</h1>
+		<h2>An HTML 5 Web Audio Experiment 2: Plonk</h2>
+		<nav id="nav" role="menubar"></nav>
+	</header>
+
+	<aside>
+		<p>An homage to
+			<a href='http://labs.dinahmoe.com/plink/#'>Plink</a>
+			by DinahMoe.
+		</p>
+		<p>
+			The write-up is <a href='writeup/'>here</a>.
+		</p>
+
+		<form action='#'>
+			<fieldset id='xcontrols'>
+				<legend>Horizontal mouse movement controls...</legend>
+			</fieldset>
+		</form>
+	</aside>
+
+	<section id="content">
+		<article role="main" id="app-container"></article>
+	</section>
+
+	<footer id="site-info" role="contentinfo">
+	</footer>
+</body>
+
+</html>
