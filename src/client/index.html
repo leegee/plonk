@@ -3,24 +3,9 @@
 
 <head>
 	<title>HTML 5 Audio Experiment 2: Plonk</title>
+	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=Edge">
-
 	<link href="css/plonk.css" media="screen" type="text/css" rel="stylesheet">
-
-	<script type="text/javascript" src="js/BufferLoader.js"></script>
-	<script type="text/javascript" src="js/Plonk.js"></script>
-
-	<script type='text/javascript'>
-		window.addEventListener('click', () => {
-			new Plonk({
-				element: 'app-container',
-				xcontrolsElement: 'xcontrols',
-				wsUri: 'ws://127.0.0.1:3000/'
-			});
-		}, {
-			once: true
-		});
-	</script>
 </head>
 
 <body>

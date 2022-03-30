@@ -1,6 +1,6 @@
-/** SSS.Plonk.js **/
-
 let ACTX;
+
+import BufferLoader from './BufferLoader';
 
 class Patch {
 	aBuffers = [];	// List of list of loaded audio buffers for user sounds
@@ -38,9 +38,9 @@ class Patch {
 		if (!this.ready) {
 			return;
 		}
-		const node = ACTX.createBufferSource();
+		const node = new AudioBufferSourceNode(ACTX);
 		node.buffer = this.aBuffers[pitch];
-		const gainNode = ACTX.createGainNode();
+		const gainNode = ACTX.createGain();
 		gainNode.gain.value = gain;
 		node.connect(gainNode);
 		let panNode;
@@ -52,13 +52,11 @@ class Patch {
 			panNode = gainNode
 		}
 		panNode.connect(ACTX.destination);
-		node.noteOn(0);
+		node.start(0);
 	}
 };
 
-class Plonk {
-	// Implements: [Options],
-
+export default class Plonk {
 	x = null;		// Mouse position
 	y = null;		// Mouse position
 	pitch = null;		// current pitch; from this.y
@@ -486,7 +484,7 @@ class Plonk {
 
 		for (let i = 1; i <= this.patches[0].aBuffers.length; i++) {
 			this.ctx.beginPath();
-			const y = (i * unit) + this.options.circleRadius;
+			const y = (i * this._cavnasUnit) + this.options.circleRadius;
 			this.ctx.moveTo(0, y);
 			this.ctx.lineTo(this.canvas.width, y);
 			this.ctx.closePath();
