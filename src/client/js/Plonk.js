@@ -1,23 +1,15 @@
 /** SSS.Plonk.js **/
 
 let ACTX;
-if (typeof AudioContext == "function") {
-	ACTX = new AudioContext();
-} else if (typeof webkitAudioContext == "function") {
-	ACTX = new webkitAudioContext();
-}
-else {
-	throw ('This browser does not support Web Audio Context');
-}
 
 class Patch {
 	aBuffers = [];	// List of list of loaded audio buffers for user sounds
 	pulses = null;
 	ready = false;
 
-	initialize(baseUri, pulses) {
+	constructor(baseUri, pulses) {
 		this.pulses = pulses;
-		if (typeof pulses == 'object' && pulses.length == 0) {
+		if (!(pulses instanceof Array && pulses.length > 0)) {
 			this.pulses = null;
 		}
 
@@ -62,10 +54,9 @@ class Patch {
 		panNode.connect(ACTX.destination);
 		node.noteOn(0);
 	}
-
 };
 
-export class Plonk {
+class Plonk {
 	// Implements: [Options],
 
 	x = null;		// Mouse position
@@ -133,20 +124,32 @@ export class Plonk {
 		]
 	};
 
-	initialize(options) {
-		this.setOptions(options);
+	constructor(options) {
+		this.options.element = options.element;
+		this.options.xcontrolsElement = options.xcontrolsElement;
+		this.options.wsUri = options.wsUri;
+
+		if (typeof AudioContext === "function") {
+			ACTX = new AudioContext();
+		} else if (typeof webkitAudioContext === "function") {
+			ACTX = new webkitAudioContext();
+		}
+		else {
+			throw ('This browser does not support Web Audio Context');
+		}
 
 		// Load samples:
-		this.options.patches.each((i) => {
+		this.options.patches.forEach((patch) => {
 			this.patches.push(new Patch(
-				i.uri,
-				typeof i.pulses !== 'undefined' ? i.pulses : null
+				patch.uri,
+				typeof patch.pulses !== 'undefined' ? patch.pulses : null
 			));
 		});
 
 		this.makeGUI();
 
-		this.anchor = this.canvas.getPosition();
+		const rect = this.canvas.getBoundingClientRect();
+		this.anchor = { x: rect.left, y: rect.top };
 		this.ctx = this.canvas.getContext('2d');
 		this.ctx.font = '12px Sans';
 
@@ -157,11 +160,13 @@ export class Plonk {
 
 	/* Add event listeners */
 	initEvents() {
+		console.log('Enter initEvents');
+
 		// React to movement of the mouse
 		this.canvas.addEventListener('mousemove', (e) => {
 			// Make co-ords absolute within canvas
-			this.x = e.page.x - this.anchor.x;
-			this.y = e.page.y - this.anchor.y;
+			this.x = e.pageX - this.anchor.x;
+			this.y = e.pageY - this.anchor.y;
 		});
 
 		// Mouse down to make a note:
@@ -177,16 +182,18 @@ export class Plonk {
 		});
 
 		// Scroll the canvas
-		this.scrollTimer = this.scroll.periodical(
-			this.options.scrollMS,
-			this
+		this.scrollTimer = setInterval(
+			this.scroll.bind(this),
+			this.options.scrollMS
 		);
 
 		// Periodically send the cursor position and redraw
-		this.pulseTimer = this.pulse.periodical(
-			this.options.pulseMS,
-			this
+		this.pulseTimer = setInterval(
+			this.pulse.bind(this),
+			this.options.pulseMS
 		);
+
+		console.log('Leave initEvents');
 	};
 
 	/* Kill the timers used for playing and rendering */
@@ -203,20 +210,13 @@ export class Plonk {
 			this.options.canvasHeight = window.getSize().y;
 		}
 
-		this.element.setStyle('position', 'relative');
+		this.element.style.position = 'relative';
 
-		this.canvas = document.createElement('canvas');
-		this.canvas.setAttribute('class', 'plonk');
-		this.canvas.setAttribute('width', this.options.canvasWidth);
-		this.canvas.setAttribute('height', this.options.canvasHeight);
-		this.canvas.setAttribute('styles',
-			'width:' + this.options.canvasWidth + 'px;' +
-			'height' + this.options.canvasHeight + 'px'
-		);
-		this.element.adopt(this.canvas);
+		this.canvas = document.getElementById('canvas');
 
 		// Controls for patch change:
 		const patches = document.createElement('div');
+
 		patches.id = 'patches',
 			patches.setAttribute('styles',
 				'top:' + (this.options.canvasHeight - (this.options.patchHeight * this.patches.length)) / 2
@@ -224,47 +224,37 @@ export class Plonk {
 
 		for (var i = 0; i < this.patches.length; i++) {
 			console.info("Set patch ctrl " + i);
-			var p = new Element('div', {
-				'class': 'patch',
-				styles: {
-					height: this.options.patchHeight,
-					width: this.options.patchHeight,
-					background: this.options.patchClrs[i]
-				},
-				events: {
-					click: function (e) {
-						e.stop();
-						// Retrieve the patch number stored in the elemenet obj
-						self.patch = this.retrieve('patch');
-					}
-				}
+			const p = document.createElement('div');
+			p.setAttribute('class', 'patch');
+			p.setAttribute('styles',
+				'height: ' + this.options.patchHeight +
+				'width: ' + this.options.patchHeight +
+				'background: ' + this.options.patchClrs[i]
+			);
+			p.addEventListener('click', (e) => {
+				e.stopPropagation();
+				this.patch = p.patch;
 			});
-			// Store the patch number in the element object
-			p.store('patch', i);
-			patches.adopt(p);
+
+			p.patch = i;
+			patches.appendChild(p);
 		}
-		this.element.adopt(patches);
+
+		this.element.appendChild(patches);
 
 		// User name
-		var p = new Element('p', { html: 'User ID:&nbsp;' }).inject(self.ctrlsEl);
-		p.adopt(new Element('input', {
-			type: 'text', value: self.userId, events: {
-				change: function (e) {
-					self.userId = e.target.value
-				}
-			}
-		}));
+		// var p = document.createElement('p', { html: 'User ID:&nbsp;' }).inject(this.ctrlsEl);
+		// p.appendChild(new Element('input', {
+		// 	type: 'text', value: this.userId, events: {
+		// 		change:  (e) => {
+		// 			this.userId = e.target.value
+		// 		}
+		// 	}
+		// }));
 
 		// X-cursor options:
-		['nothing', 'volume', 'pan'].each(function (i) {
-			var p = new Element('p');
-			p.adopt(new Element('input', {
-				type: 'radio', name: 'x', id: 'ctl' + i, value: i, title: i,
-				checked: i == 'nothing' ? true : false,
-				events: { change: function (e) { self.xCtrl = i } }
-			}));
-			p.adopt(new Element('label', { 'for': 'ctl' + i, text: i }));
-			self.ctrlsEl.adopt(p);
+		['nothing', 'volume', 'pan'].forEach((i) => {
+			document.getElementById('ctrl-' + i).addEventListener('change', (e) => this.xCtrl = i);
 		});
 	};
 
@@ -274,7 +264,6 @@ export class Plonk {
 
 	connect() {
 		console.log('Enter connect');
-		var self = this;
 		if (window.MozWebSocket) {
 			window.WebSocket = window.MozWebSocket;
 		}
@@ -285,48 +274,47 @@ export class Plonk {
 
 		this.websocket = new WebSocket(this.wsUri, 'sec-websocket-protocol');
 		console.debug(this.websocket);
-		this.websocket.onopen = function (e) { self.open(e) };
-		this.websocket.onclose = function (e) { self.close(e) };
-		this.websocket.onmessage = function (e) { self.receive(e) };
-		this.websocket.onerror = function (e) { self.error(e) };
+		this.websocket.onopen = this.open.bind(this);
+		this.websocket.onclose = this.close.bind(this);
+		this.websocket.onmessage = this.receive.bind(this);
+		this.websocket.onerror = this.error.bind(this);
 
 		console.log('Leave connect');
 	};
 
-	open(e) {
+	open() {
 		console.log('Enter open');
-		// This is a bit hacky: should really
-		// check at intervals for the .ready state of
+		// This is a bit hacky: should really check at intervals for the .ready state of
 		// each of the samples loaded above.
-		this.initEvents.delay(1000, this);
+		setTimeout(() => this.initEvents(), 1000);
 	};
 
-	close(e) {
-		console.log('Enter close');
-		console.log(e);
+	close() {
 		this.destroy();
 	};
 
 	error(e) {
-		console.log('Enter error');
-		console.error(e);
-		this.websocket.close();
+		if (this.websocket) {
+			this.websocket.close();
+		}
 		this.close();
-		throw (e);
+		throw e;
 	};
 
 	/* Receive data on all connected users' cursors, including
 		 our own, which are stored in the caller and rendered by
 		 at regular intervals, elsewhere. */
 	receive(e) {
-		var res = JSON.decode(e.data);
+		const res = JSON.parse(e.data);
 		// console.debug( res );
 		this.cursors = res.cursors;
 	};
 
 	/* Send the user options and cursor position. */
 	send() {
-		if (!this.y) return;
+		if (!this.y) {
+			return;
+		}
 		this.gain = 1;
 		this.panning = 0;
 
@@ -342,6 +330,19 @@ export class Plonk {
 			this.pan = (this.x / (this.canvas.width / 10)) - 5;
 		}
 
+		this.websocket.send([
+			this.userId,
+			this.x,
+			this.y,
+			this.scaleCursor,
+			this.gain,
+			this.pan,
+			this.patch,
+			this.computedPitch(),
+		].join(','));
+	};
+
+	computedPitch() {
 		if (this.playNote) {
 			this.pitch = parseInt(
 				((this.canvas.height - this.y)
@@ -352,32 +353,19 @@ export class Plonk {
 		else {
 			this.pitch = '';
 		}
-
-		this.websocket.send(
-			this.userId
-			+ ','
-			+ this.x + ',' + this.y
-			+ ','
-			+ this.scaleCursor
-			+ ','
-			+ this.gain
-			+ ','
-			+ this.pan
-			+ ','
-			+ this.patch
-			+ ','
-			+ this.pitch
-		);
-	};
+		return this.pitch;
+	}
 
 	/* Send current user-state data to the server.
 		 Render all stored cursors visually,
 		 play the latest generation of cursors.
 		 play whatever percussion we have  */
 	pulse() {
-		var self = this;
 		this.send();
-		if (!this.cursors) return;
+
+		if (!this.cursors) {
+			return;
+		}
 
 		this.pulseNumber++;
 
@@ -385,14 +373,14 @@ export class Plonk {
 		this.cursorStack.unshift(this.cursors);
 
 		// Play each sound distributed by the server
-		Object.keys(this.cursors).sort().each(function (i) {
-			var play = false;
+		Object.keys(this.cursors).sort().forEach((i) => {
+			let play = false;
 			// Server sends a pitch, otherwise it is just cursor display:
-			if (self.cursors[i].pitch != null) {
+			if (this.cursors[i].pitch != null) {
 				// This patch may have an associated pulse:
-				if (self.patches[self.cursors[i].patch].pulses) {
-					self.patches[self.cursors[i].patch].pulses.each(function (p) {
-						if (self.pulseNumber % p[0] == p[1]) {
+				if (this.patches[this.cursors[i].patch].pulses) {
+					this.patches[this.cursors[i].patch].pulses.forEach((p) => {
+						if (this.pulseNumber % p[0] === p[1]) {
 							play = true;
 							return;
 						}
@@ -402,25 +390,26 @@ export class Plonk {
 					play = true;
 				}
 
-				if (play)
-					self.patches[self.cursors[i].patch].playNow(
-						self.cursors[i].pitch,
-						self.cursors[i].gain,
-						self.cursors[i].pan
+				if (play) {
+					this.patches[this.cursors[i].patch].playNow(
+						this.cursors[i].pitch,
+						this.cursors[i].gain,
+						this.cursors[i].pan
 					);
+				}
 			}
 		});
 
 		// Play percussion track:
 		this.scaleCursor = this.options.initialScaleFactor
 			+ (this.gain / 2);
-		var pitch = 0;
+		let pitch = 0;
 		if (this.options.percussion !== undefined) {
-			this.percNames.each(function (instrument) {
-				self.options.percussion[instrument].each(function (i) {
-					if (self.pulseNumber % i[0] == i[1]) {
-						self.patches[0].playNow(pitch);
-						self.scaleCursor += self.options.cursorScaleIncrement;
+			this.percNames.forEach((instrument) => {
+				this.options.percussion[instrument].forEach((i) => {
+					if (this.pulseNumber % i[0] == i[1]) {
+						this.patches[0].playNow(pitch);
+						this.scaleCursor += this.options.cursorScaleIncrement;
 					}
 				});
 				pitch++;
@@ -431,8 +420,8 @@ export class Plonk {
 	/* Render visually a single cursor
 		 Note the bad JSON type-casting from server. */
 	drawCursor(cursor, x, generation) {
-		// Graphics
-		var y = parseInt(cursor.xy[1]) + (this.options.circleRadius);
+		const y = parseInt(cursor.xy[1]) + (this.options.circleRadius);
+
 		this.ctx.fillStyle = this.ctx.strokeStyle = this.options.patchClrs[cursor.patch];
 		this.ctx.beginPath();
 		this.ctx.arc(
@@ -442,7 +431,8 @@ export class Plonk {
 		);
 		this.ctx.closePath();
 		this.ctx.stroke();
-		if (generation && generation == 1) {
+
+		if (generation && generation === 1) {
 			this.ctx.strokeStyle = this.ctx.fillStyle = '#EEE';
 			this.ctx.beginPath();
 			this.ctx.arc(
@@ -452,6 +442,7 @@ export class Plonk {
 			);
 			this.ctx.closePath();
 			this.ctx.stroke();
+
 			// User name slightly off-centred from cursor
 			this.ctx.beginPath();
 			this.ctx.fillText(
@@ -464,8 +455,9 @@ export class Plonk {
 		}
 
 		// Fill the cursor if the note is currently playing:
-		if (cursor.pitch != null && cursor.pitch > -1)
+		if (cursor.pitch !== null && cursor.pitch > -1) {
 			this.ctx.fill();
+		}
 	};
 
 	/* Scroll the screen.
@@ -473,38 +465,47 @@ export class Plonk {
 		 that was too heavy. Now calls for a rendering of
 		 every cursor stored. */
 	scroll() {
-		if (!this.cursorStack) return;
-		if (!this.patches[0].aBuffers) return;
+		if (!this.cursorStack) {
+			console.debug('No cursors');
+			return;
+		};
+		if (!this.patches[0].aBuffers) {
+			console.debug('No audio buffers in patch 0');
+			return;
+		};
 
-		var self = this;
-		// Wipe canvas
-		// this.canvas.width = this.canvas.width;
+		let newStack = [];	// Limit size of stack to that on screen
+		let generation = 0;
+
 		this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
 		// Note dividing lines
-		var unit = this.canvas.height / this.patches[0].aBuffers.length;
+		this._cavnasUnit = this._cavnasUnit || this.canvas.height / this.patches[0].aBuffers.length;
+
 		this.ctx.fillStyle = this.ctx.strokeStyle = "#555";
-		for (var i = 1; i <= this.patches[0].aBuffers.length; i++) {
+
+		for (let i = 1; i <= this.patches[0].aBuffers.length; i++) {
 			this.ctx.beginPath();
-			var y = (i * unit) + this.options.circleRadius;
+			const y = (i * unit) + this.options.circleRadius;
 			this.ctx.moveTo(0, y);
 			this.ctx.lineTo(this.canvas.width, y);
 			this.ctx.closePath();
 			this.ctx.stroke();
 		}
 
-		var x = this.options.cursorX + this.options.circleRadius;
+		let x = this.options.cursorX + this.options.circleRadius;
 
-		var newStack = [];	// Limit size of stack to that on screen
-		var generation = 0;
 		// cursorStack is chronological - newest first
-		this.cursorStack.each(function (frame) {
-			Object.keys(frame).sort().each(function (i) {
-				self.drawCursor(frame[i], x, ++generation);
+		this.cursorStack.forEach((frame) => {
+			Object.keys(frame).sort().forEach((i) => {
+				this.drawCursor(frame[i], x, ++generation);
 			});
-			x -= self.options.circleRadius * 2;
-			if (x > 0) newStack.push(frame);
-			else return;
+			x -= this.options.circleRadius * 2;
+			if (x > 0) {
+				newStack.push(frame);
+			} else {
+				return;
+			}
 		});
 
 		this.cursorStack = newStack;

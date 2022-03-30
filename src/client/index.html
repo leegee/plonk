@@ -11,13 +11,14 @@
 	<script type="text/javascript" src="js/Plonk.js"></script>
 
 	<script type='text/javascript'>
-		window.addEvent('DOMContentLoaded', () => {
+		window.addEventListener('click', () => {
 			new Plonk({
 				element: 'app-container',
 				xcontrolsElement: 'xcontrols',
-				fillWindow: true,
 				wsUri: 'ws://127.0.0.1:3000/'
 			});
+		}, {
+			once: true
 		});
 	</script>
 </head>
@@ -41,12 +42,19 @@
 		<form action='#'>
 			<fieldset id='xcontrols'>
 				<legend>Horizontal mouse movement controls...</legend>
+				<p>
+					<label><input type="radio" name="x" id="ctrl-nothing" value="nothing" title="nothing" checked> X</label>
+					<label><input type="radio" name="x" id="ctrl-volume" value="volume" title="volume"> Volume</label>
+					<label><input type="radio" name="x" id="ctrl-pan" value="pan" title="pan">Pan</label>
+				</p>
 			</fieldset>
 		</form>
 	</aside>
 
 	<section id="content">
-		<article role="main" id="app-container"></article>
+		<article role="main" id="app-container">
+			<canvas id="canvas" class="plonk" style="width: auto; height: 100vh;"></canvas>
+		</article>
 	</section>
 
 	<footer id="site-info" role="contentinfo">

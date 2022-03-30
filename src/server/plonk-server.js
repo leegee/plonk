@@ -7,6 +7,8 @@
 const WebSocketServer = require('websocket').server;
 const http = require('http');
 
+const PORT = 3000;
+
 const CURSORS = {};
 
 const httpServer = http.createServer((request, response) => {
@@ -21,14 +23,14 @@ const wsServer = new WebSocketServer({
     maxReceivedFrameSize: 50
 });
 
-httpServer.listen(8080, function () {
+httpServer.listen(PORT, function () {
     console.log((new Date()), 'Server is listening on port 8080');
 });
 
 // Could test request.origin and request.reject();
 wsServer.on('request', function (request) {
     const cx = request.accept('sec-websocket-protocol', request.origin);
-    console.log((new Date()), 'Connection accepted from', request.origin);
+    console.log((new Date()), 'Connection accepted from', request.remoteAddress);
     handleWsCx(cx);
 });
 
@@ -61,8 +63,8 @@ function handleWsCx(cx) {
     });
 
     cx.on('close', function (reasonCode, description) {
-        console.log((new Date()), 'Peer ' + cx.remoteAddress + ' disconnected.');
-        delete CURSORS[cxId];
+        console.log((new Date()), 'Peer ' + cx.remoteAddress + ' disconnected.', reasonCode, description);
+        // delete CURSORS[cxId];
     });
 }
 
