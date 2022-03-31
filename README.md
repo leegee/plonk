@@ -1,6 +1,6 @@
 # plonk
 
-    npm run ws # WebScoket server
+    npm run ws    # WebScoket dev server
     npm run watch # Webpack dev server
 
 An homage to Dinahmoe's Plink

@@ -10,40 +10,23 @@
 
 <body>
 	<header id="masthead" role="banner">
-		<h1>Plonk</h1>
-		<h2>An HTML 5 Web Audio Experiment 2: Plonk</h2>
-		<nav id="nav" role="menubar"></nav>
+		<h1>Plonk:
+			an <a href='writeup/'>homage</a> to <a href='http://labs.dinahmoe.com/plink/#'>Plink</a> by DinahMoe.
+		</h1>
 	</header>
 
-	<aside>
-		<p>An homage to
-			<a href='http://labs.dinahmoe.com/plink/#'>Plink</a>
-			by DinahMoe.
-		</p>
-		<p>
-			The write-up is <a href='writeup/'>here</a>.
-		</p>
-
-		<form action='#'>
-			<fieldset id='xcontrols'>
-				<legend>Horizontal mouse movement controls...</legend>
-				<p>
-					<label><input type="radio" name="x" id="ctrl-nothing" value="nothing" title="nothing" checked> X</label>
-					<label><input type="radio" name="x" id="ctrl-volume" value="volume" title="volume"> Volume</label>
-					<label><input type="radio" name="x" id="ctrl-pan" value="pan" title="pan">Pan</label>
-				</p>
-			</fieldset>
-		</form>
+	<aside id='xcontrols'>
+		<label><input type="radio" name="x" id="nothing" value="nothing" title="nothing" checked> X</label>
+		<label><input type="radio" name="x" id="volume" value="volume" title="volume"> Volume</label>
+		<label><input type="radio" name="x" id="pan" value="pan" title="pan">Pan</label>
 	</aside>
 
 	<section id="content">
 		<article role="main" id="app-container">
-			<canvas id="canvas" class="plonk" style="width: auto; height: 100vh;"></canvas>
+			<canvas id="canvas"></canvas>
 		</article>
 	</section>
 
-	<footer id="site-info" role="contentinfo">
-	</footer>
 </body>
 
 </html>

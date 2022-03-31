@@ -9,7 +9,8 @@ const http = require('http');
 
 const PORT = 3000;
 
-const CURSORS = {};
+const Cursors = {};
+let Users_Seen = 0;
 
 const httpServer = http.createServer((request, response) => {
     console.log((new Date()), 'Received request for ' + request.url);
@@ -34,32 +35,36 @@ wsServer.on('request', function (request) {
     handleWsCx(cx);
 });
 
-// CURSORS was indexed by connection, but now by ID
-// const cxId = [ cx.socket._peername.family, cx.socket._peername.address, cx.socket._peername.port ].join(':');
 function handleWsCx(cx) {
+    // const userId = ++Users_Seen;
+
     cx.on('message', (message) => {
         if (message.type === 'binary') {
             console.warn('Ignoring received Binary Message of ' + message.binaryData.length + ' bytes');
             cx.close();
         }
 
-        // console.log('Received Message: ' + message.utf8Data);
-
         const csv = message.utf8Data.split(',');
 
-        const userId = csv[0];
+        const userId = csv.shift();
 
-        CURSORS[userId] = {
+        Cursors[userId] = {
             userId,
-            xy: [parseInt(csv[1]), parseInt(csv[2])],
-            scaleCursor: parseInt(csv[3]),
-            gain: parseInt(csv[4]),
-            pain: parseInt(csv[5]),
-            patch: parseInt(csv[6]),
-            pitch: parseInt(csv[7]),
+            scaleCursor: parseInt(csv.shift()),
+            gain: parseInt(csv.shift()),
+            pan: parseInt(csv.shift()),
+            patch: parseInt(csv.shift()),
+            pitch: parseInt(csv.shift()),
         };
 
-        cx.sendUTF(JSON.stringify({ cursors: CURSORS }));
+        if (Cursors[userId].pitch === -1) {
+            delete Cursors[userId];
+        }
+
+        cx.sendUTF(JSON.stringify({ cursors: Cursors }));
+
+        console.log('Received Message: ' + message.utf8Data);
+        console.log('Made Message: ' + JSON.stringify(Cursors[userId], null, 2));
     });
 
     cx.on('close', function (reasonCode, description) {

@@ -57,48 +57,46 @@ class Patch {
 };
 
 export default class Plonk {
-	x = null;		// Mouse position
-	y = null;		// Mouse position
-	pitch = null;		// current pitch; from this.y
-	playNote = false;		// Is a note being played?
-	xCtrl = 'nothing';	// Notes what horizontal mouse movement controls
-	canvas = null;		// The canvas this code creates
-	ctx = null;		// Canvas context
-	wsUri = null;		// Web socket server URI sans port
-	wsPort = 3000;		// Web socket server port
-	anchor = null;		// Cursor offset relative to canvas
-	element = null;		// Inst from options.element
-	websocket = null;		// Instance of the obvious
-	cursors = null;		// State from server
-	cursorStack = [];			// Previouos cursors; for scrollig graphics; on subarray per pulse
-	pulseNumber = 0;			// keep a beat
-	pulseTimer = null;		// setTimeout
-	scrollTimer = null;		// setTimeout
-	scaleCursor = null;		// Controls circle size/growth
-	patch = 1;			// Initial patch= 0 must be percission
-	gain = 1;			// volume
-	pan = 0;			// pan
-	userId = 'Plonker';	// Displayed by cursor
+	x = null;										// Mouse position
+	y = null;										// Mouse position
+	playNote = false;						// Is a note being played?
+	xCtrl = 'nothing';					// Notes what horizontal mouse movement controls
+	canvas = null;							// The canvas this code creates
+	ctx = null;									// Canvas context
+	wsUri = null;								// Web socket server URI sans port
+	wsPort = 3000;							// Web socket server port
+	element = null;							// Inst from options.element
+	websocket = null;						// Instance of the obvious
+	cursors = null;							// State from server
+	cursorStack = [];						// Previouos cursors; for scrollig graphics; on subarray per pulse
+	pulseNumber = 0;						// keep a beat
+	pulseTimer = null;					// setTimeout
+	scrollTimer = null;					// setTimeout
+	scaleCursor = null;					// Controls circle size/growth
+	patchIndex = 1;							// Initial patch= 0 must be percission
+	gain = 1;										// volume
+	pan = 0;										// pan
+	userId = 'Plonker';					// Displayed by cursor
+	patches = [];								// Loaded on instantiation
 	percNames = ['kick', 'snare', 'hat_closed'];	// For ease of programming
-	patches = [];			// Loaded on instantiation
 
 	options = {
-		element: null,	// DOM element into which to insert this app
-		xcontrolsElement: null,	// Element into which to place controller options
-		canvasWidth: 700,		// Size of the canvas for its
-		canvasHeight: 500,		// Attributes and CSS.
-		cursorX: 700,		// x position of cursor relative to canvas
-		circleRadius: 5,		// Circles that represent sound
-		cursorScaleIncrement: .3,		// Amount by which to increase cursor size
+		element: null,						// DOM element into which to insert this app
+		xcontrolsElement: null,		// Element into which to place controller options
+		cursorX: 700,							// x position of cursor relative to canvas
+		circleRadius: 5,					// Circles that represent sound
+		cursorScaleIncrement: .3,	// Amount by which to increase cursor size
 		initialScaleFactor: .4,		// Relates to changing size of circles
 
-		scrollPx: 4,		// Pixels to scroll each scrollMS
-		scrollMS: 1000 / 32,	// Frames per second
+		scrollPx: 4,							// Pixels to scroll each scrollMS
+		scrollMS: 1000 / 32,			// Frames per second
 
-		pulseMS: 1000 / 8,// Sending to server, and rendering sound and cursors
+		pulseMS: 1000 / 8,				// Sending to server, and rendering sound and cursors
 
 		// Sounds:
-		patchHeight: 20,		// Patch selector
+		patchHeight: 20,					// Patch selector
+		patchWidth: 20,					// Patch selector
+
 		// XXX TODO Replace these bland colours:
 		patchClrs: ['purple', 'indigo', 'blue', 'green', 'yellow', 'orange', 'red'],
 		// These always pulse:
@@ -146,25 +144,19 @@ export default class Plonk {
 
 		this.makeGUI();
 
-		const rect = this.canvas.getBoundingClientRect();
-		this.anchor = { x: rect.left, y: rect.top };
 		this.ctx = this.canvas.getContext('2d');
 		this.ctx.font = '12px Sans';
 
 		this.wsUri = this.options.wsUri || "ws://" + window.location.hostname + ':' + this.options.wsPort;
-		console.log("Connect to wsUri of " + this.wsUri);
 		this.connect();
 	};
 
-	/* Add event listeners */
 	initEvents() {
-		console.log('Enter initEvents');
-
 		// React to movement of the mouse
 		this.canvas.addEventListener('mousemove', (e) => {
 			// Make co-ords absolute within canvas
-			this.x = e.pageX - this.anchor.x;
-			this.y = e.pageY - this.anchor.y;
+			this.x = e.pageX;
+			this.y = e.pageY;
 		});
 
 		// Mouse down to make a note:
@@ -179,66 +171,46 @@ export default class Plonk {
 			e.stopPropagation();
 		});
 
-		// Scroll the canvas
-		this.scrollTimer = setInterval(
-			this.scroll.bind(this),
-			this.options.scrollMS
-		);
+		/** The height of a pitch on the canvas */
+		this._cavnasUnit = this.canvas.offsetHeight / this.patches[0].aBuffers.length;
 
-		// Periodically send the cursor position and redraw
+		window.requestAnimationFrame(this.scroll.bind(this));
+
+		/** Periodically send the cursor position and redraw */
 		this.pulseTimer = setInterval(
 			this.pulse.bind(this),
 			this.options.pulseMS
 		);
-
-		console.log('Leave initEvents');
 	};
 
-	/* Kill the timers used for playing and rendering */
+	/** Kills the timers used for playing and rendering */
 	destroy() {
 		clearInterval(this.scrollTimer);
 		clearInterval(this.pulseTimer);
 	};
 
 	makeGUI() {
-		this.element = document.getElementById(this.options.element);
 		this.ctrlsEl = document.getElementById(this.options.xcontrolsElement);
-
-		if (this.options.fillWindow) {
-			this.options.canvasHeight = window.getSize().y;
-		}
-
-		this.element.style.position = 'relative';
-
+		this.element = document.getElementById(this.options.element);
 		this.canvas = document.getElementById('canvas');
 
+		const rect = this.element.getBoundingClientRect();
+		this.canvas.width = rect.width;
+		this.canvas.height = rect.height;
+
 		// Controls for patch change:
-		const patches = document.createElement('div');
-
-		patches.id = 'patches',
-			patches.setAttribute('styles',
-				'top:' + (this.options.canvasHeight - (this.options.patchHeight * this.patches.length)) / 2
-			);
-
-		for (var i = 0; i < this.patches.length; i++) {
-			console.info("Set patch ctrl " + i);
-			const p = document.createElement('div');
-			p.setAttribute('class', 'patch');
-			p.setAttribute('styles',
-				'height: ' + this.options.patchHeight +
-				'width: ' + this.options.patchHeight +
-				'background: ' + this.options.patchClrs[i]
-			);
-			p.addEventListener('click', (e) => {
+		for (let i = 0; i < this.patches.length; i++) {
+			const el = document.createElement('span');
+			el.setAttribute('class', 'patch');
+			el.setAttribute('style', 'background-color: ' + this.options.patchClrs[i]);
+			el.addEventListener('click', (e) => {
 				e.stopPropagation();
-				this.patch = p.patch;
+				console.info("Set patch to " + i, this.patches[i], e.target.dataset.patch);
+				this.patchIndex = i;
 			});
-
-			p.patch = i;
-			patches.appendChild(p);
+			this.ctrlsEl.appendChild(el);
 		}
 
-		this.element.appendChild(patches);
 
 		// User name
 		// var p = document.createElement('p', { html: 'User ID:&nbsp;' }).inject(this.ctrlsEl);
@@ -252,16 +224,11 @@ export default class Plonk {
 
 		// X-cursor options:
 		['nothing', 'volume', 'pan'].forEach((i) => {
-			document.getElementById('ctrl-' + i).addEventListener('change', (e) => this.xCtrl = i);
+			document.getElementById(i).addEventListener('change', (e) => this.xCtrl = i);
 		});
 	};
 
-	toElement() {
-		return this.element;
-	};
-
 	connect() {
-		console.log('Enter connect');
 		if (window.MozWebSocket) {
 			window.WebSocket = window.MozWebSocket;
 		}
@@ -270,14 +237,12 @@ export default class Plonk {
 			return;
 		}
 
+		console.info("Connect to wsUri of " + this.wsUri);
 		this.websocket = new WebSocket(this.wsUri, 'sec-websocket-protocol');
-		console.debug(this.websocket);
 		this.websocket.onopen = this.open.bind(this);
-		this.websocket.onclose = this.close.bind(this);
+		this.websocket.onclose = this.destroy.bind(this);
 		this.websocket.onmessage = this.receive.bind(this);
 		this.websocket.onerror = this.error.bind(this);
-
-		console.log('Leave connect');
 	};
 
 	open() {
@@ -287,15 +252,11 @@ export default class Plonk {
 		setTimeout(() => this.initEvents(), 1000);
 	};
 
-	close() {
-		this.destroy();
-	};
-
 	error(e) {
 		if (this.websocket) {
 			this.websocket.close();
 		}
-		this.close();
+		this.destroy();
 		throw e;
 	};
 
@@ -304,7 +265,6 @@ export default class Plonk {
 		 at regular intervals, elsewhere. */
 	receive(e) {
 		const res = JSON.parse(e.data);
-		// console.debug( res );
 		this.cursors = res.cursors;
 	};
 
@@ -313,45 +273,51 @@ export default class Plonk {
 		if (!this.y) {
 			return;
 		}
-		this.gain = 1;
-		this.panning = 0;
 
-		if (this.xCtrl == 'volume') {
+		// if (!this.playNote) {
+		// 	return;
+		// }
+
+		if (this.xCtrl.value === 'volume') {
 			// 1 - sum makes the right-side loud, left-side quiet
 			this.gain = 1 - (
 				((this.canvas.width - this.x)
 					/ this.canvas.width)
 			);
 		}
+
 		// What are the units for a panning node?!
-		else if (this.xCtrl == 'pan') {
+		else if (this.xCtrl.value === 'pan') {
 			this.pan = (this.x / (this.canvas.width / 10)) - 5;
 		}
 
-		this.websocket.send([
+		const msg = [
 			this.userId,
-			this.x,
-			this.y,
 			this.scaleCursor,
 			this.gain,
 			this.pan,
-			this.patch,
-			this.computedPitch(),
-		].join(','));
+			this.patchIndex,
+			this.playNote ? this.pitchIndexFromY(this.y) : -1,
+		].join(',');
+
+		this.websocket.send(msg);
 	};
 
-	computedPitch() {
-		if (this.playNote) {
-			this.pitch = parseInt(
-				((this.canvas.height - this.y)
-					/ this.canvas.height
-				) * this.patches[this.patch].aBuffers.length
-			);
-		}
-		else {
-			this.pitch = '';
-		}
-		return this.pitch;
+	yFromPitchIndexFrom(pitchIndex) {
+		return parseInt(
+			this.canvas.height - (
+				pitchIndex * (this.canvas.height / this.patches[this.patchIndex].aBuffers.length)
+			)
+		);
+	}
+
+	pitchIndexFromY(y) {
+		return parseInt(
+			(
+				(this.canvas.height - y)
+				/ this.canvas.height
+			) * this.patches[this.patchIndex].aBuffers.length
+		);
 	}
 
 	/* Send current user-state data to the server.
@@ -374,7 +340,7 @@ export default class Plonk {
 		Object.keys(this.cursors).sort().forEach((i) => {
 			let play = false;
 			// Server sends a pitch, otherwise it is just cursor display:
-			if (this.cursors[i].pitch != null) {
+			if (this.cursors[i].pitch !== null) {
 				// This patch may have an associated pulse:
 				if (this.patches[this.cursors[i].patch].pulses) {
 					this.patches[this.cursors[i].patch].pulses.forEach((p) => {
@@ -399,13 +365,14 @@ export default class Plonk {
 		});
 
 		// Play percussion track:
-		this.scaleCursor = this.options.initialScaleFactor
-			+ (this.gain / 2);
+		this.scaleCursor = this.options.initialScaleFactor + (this.gain / 2);
+
 		let pitch = 0;
+
 		if (this.options.percussion !== undefined) {
 			this.percNames.forEach((instrument) => {
 				this.options.percussion[instrument].forEach((i) => {
-					if (this.pulseNumber % i[0] == i[1]) {
+					if (this.pulseNumber % i[0] === i[1]) {
 						this.patches[0].playNow(pitch);
 						this.scaleCursor += this.options.cursorScaleIncrement;
 					}
@@ -418,35 +385,37 @@ export default class Plonk {
 	/* Render visually a single cursor
 		 Note the bad JSON type-casting from server. */
 	drawCursor(cursor, x, generation) {
-		const y = parseInt(cursor.xy[1]) + (this.options.circleRadius);
+		const y = this.yFromPitchIndexFrom(cursor.pitch);
 
-		this.ctx.fillStyle = this.ctx.strokeStyle = this.options.patchClrs[cursor.patch];
-		this.ctx.beginPath();
-		this.ctx.arc(
-			x, y,
-			this.options.circleRadius * 2 * (cursor.scaleCursor),
-			0, Math.PI * 2, true
-		);
-		this.ctx.closePath();
-		this.ctx.stroke();
+		// this.ctx.beginPath();
+		// this.ctx.strokeStyle = this.ctx.fillStyle = '#EEE';
+		// this.ctx.arc(
+		// 	x, y,
+		// 	this.options.circleRadius,
+		// 	0, Math.PI * 2, true
+		// );
+		// this.ctx.closePath();
+		// this.ctx.stroke();
 
-		if (generation && generation === 1) {
-			this.ctx.strokeStyle = this.ctx.fillStyle = '#EEE';
-			this.ctx.beginPath();
-			this.ctx.arc(
-				x, y,
-				this.options.circleRadius,
-				0, Math.PI * 2, true
-			);
-			this.ctx.closePath();
-			this.ctx.stroke();
-
+		if (generation === 1) {
 			// User name slightly off-centred from cursor
+			// this.ctx.strokeStyle = this.ctx.fillStyle = '#EEE';
 			this.ctx.beginPath();
 			this.ctx.fillText(
 				cursor.userId,
 				x + 10, y - 10,
 				200
+			);
+			this.ctx.closePath();
+		}
+		// Past generations
+		else {
+			this.ctx.beginPath();
+			this.ctx.fillStyle = this.ctx.strokeStyle = this.options.patchClrs[cursor.patch];
+			this.ctx.arc(
+				x, y,
+				this.options.circleRadius * 2 * (cursor.scaleCursor),
+				0, Math.PI * 2, true
 			);
 			this.ctx.closePath();
 			this.ctx.stroke();
@@ -467,20 +436,20 @@ export default class Plonk {
 			console.debug('No cursors');
 			return;
 		};
+
 		if (!this.patches[0].aBuffers) {
 			console.debug('No audio buffers in patch 0');
 			return;
 		};
 
-		let newStack = [];	// Limit size of stack to that on screen
+		let newStack = [];	// Limit size of stack to that on screen - as screens vary, server should do this
 		let generation = 0;
 
 		this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-		// Note dividing lines
-		this._cavnasUnit = this._cavnasUnit || this.canvas.height / this.patches[0].aBuffers.length;
-
-		this.ctx.fillStyle = this.ctx.strokeStyle = "#555";
+		this.ctx.lineWidth = 1;
+		this.ctx.fillStyle = null;
+		this.ctx.strokeStyle = "#555";
 
 		for (let i = 1; i <= this.patches[0].aBuffers.length; i++) {
 			this.ctx.beginPath();
@@ -494,18 +463,20 @@ export default class Plonk {
 		let x = this.options.cursorX + this.options.circleRadius;
 
 		// cursorStack is chronological - newest first
-		this.cursorStack.forEach((frame) => {
-			Object.keys(frame).sort().forEach((i) => {
-				this.drawCursor(frame[i], x, ++generation);
+		this.cursorStack.forEach((cursorsOverTime) => {
+			Object.keys(cursorsOverTime).sort().forEach((i) => {
+				this.drawCursor(cursorsOverTime[i], x, ++generation);
 			});
 			x -= this.options.circleRadius * 2;
 			if (x > 0) {
-				newStack.push(frame);
+				newStack.push(cursorsOverTime);
 			} else {
 				return;
 			}
 		});
 
 		this.cursorStack = newStack;
+
+		window.requestAnimationFrame(this.scroll.bind(this));
 	}
 }
