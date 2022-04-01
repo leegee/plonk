@@ -80,11 +80,7 @@ export default class Plonk {
 			promises.push(patch.load());
 		});
 
-		console.log("Patches loading", promises, promises[0] instanceof Promise);
-
 		await Promise.allSettled(promises);
-
-		console.log("Patches claim to be loaded", JSON.stringify(promises, null, 4));
 
 		this.makeGUI();
 		this.connect();
