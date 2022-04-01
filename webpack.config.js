@@ -12,6 +12,7 @@ const stylesHandler = isProduction
   : "style-loader";
 
 const config = {
+  devtool: 'source-map',
   entry: "./src/client/index.js",
   output: {
     path: path.resolve(__dirname, "dist"),
