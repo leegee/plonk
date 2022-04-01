@@ -56,7 +56,8 @@
     "webpack-dev-server": "^4.7.4",
     "websocket": "^1.0.34",
     "workbox-webpack-plugin": "^6.5.2",
-    "yaeti": "^0.0.6"
+    "yaeti": "^0.0.6",
+    "glob-parent": ">=5.1.2"
   },
   "dependencies": {
     "@babel/runtime": "^7.17.8"
