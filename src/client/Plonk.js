@@ -169,11 +169,12 @@ export default class Plonk {
 		if (!window.WebSocket) {
 			throw new Error('This browser does not support Web Sockets');
 		}
+
 		console.info("Connect to wsUri of " + this.options.wsUri);
-		this.websocket = new WebSocket(this.options.wsUri, 'echo-protocol'); // , 'sec-websocket-protocol');
-		this.websocket.onerror = this.error.bind(this);
+		this.websocket = new WebSocket(this.options.wsUri, 'sec-websocket-protocol');
 		this.websocket.onclose = this.destroy.bind(this);
 		this.websocket.onmessage = this.receive.bind(this);
+		this.websocket.onerror = this.error.bind(this);
 		this.websocket.onopen = this.open.bind(this);
 	};
 
