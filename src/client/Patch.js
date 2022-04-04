@@ -1,6 +1,6 @@
 import BufferLoader from './BufferLoader';
 
-const ACTX = new AudioContext();
+let ACTX;
 
 export default class Patch {
   urls = [];
@@ -11,6 +11,8 @@ export default class Patch {
   constructor(baseUrl, pulses = null) {
     this.baseUrl = baseUrl;
     this.pulses = pulses;
+
+    ACTX = new AudioContext();
 
     for (let note = 1; note <= 11; note++) {
       this.urls.push(baseUrl + '/' + note + '.wav');

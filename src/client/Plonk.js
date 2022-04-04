@@ -8,7 +8,6 @@ export default class Plonk {
 	canvas = null;							// The canvas this code creates
 	ctx = null;									// Canvas context
 	wsUri = null;								// Web socket server URI sans port
-	wsPort = 3000;							// Web socket server port
 	element = null;							// Inst from options.element
 	websocket = null;						// Instance of the obvious
 	cursors = null;							// State from server
@@ -84,7 +83,6 @@ export default class Plonk {
 
 		this.makeGUI();
 		this.connect();
-		this.initEvents();
 	};
 
 	initEvents() {
@@ -171,18 +169,17 @@ export default class Plonk {
 		if (!window.WebSocket) {
 			throw new Error('This browser does not support Web Sockets');
 		}
-		window.WebSocket = window.WebSocket;
-
 		console.info("Connect to wsUri of " + this.options.wsUri);
-		this.websocket = new WebSocket(this.options.wsUri, 'sec-websocket-protocol');
-		this.websocket.onopen = this.open.bind(this);
+		this.websocket = new WebSocket(this.options.wsUri, 'echo-protocol'); // , 'sec-websocket-protocol');
+		this.websocket.onerror = this.error.bind(this);
 		this.websocket.onclose = this.destroy.bind(this);
 		this.websocket.onmessage = this.receive.bind(this);
-		this.websocket.onerror = this.error.bind(this);
+		this.websocket.onopen = this.open.bind(this);
 	};
 
 	open() {
 		console.log('Enter open');
+		this.initEvents();
 	};
 
 	error(e) {
