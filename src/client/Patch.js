@@ -12,7 +12,7 @@ export default class Patch {
     this.baseUrl = baseUrl;
     this.pulses = pulses;
 
-    ACTX = new AudioContext();
+     ACTX = new AudioContext(); // Wait for call because Chromium requires user interaction for audio
 
     for (let note = 1; note <= 11; note++) {
       this.urls.push(baseUrl + '/' + note + '.wav');
