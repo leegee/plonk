@@ -4,7 +4,7 @@ let ACTX;
 
 export default class Patch {
   urls = [];
-  aBuffers = [];	// List of list of loaded audio buffers for user sounds
+  aBuffers = []; // List of list of loaded audio buffers for user sounds
   pulses = null;
   ready = false;
 
@@ -12,7 +12,7 @@ export default class Patch {
     this.baseUrl = baseUrl;
     this.pulses = pulses;
 
-     ACTX = new AudioContext(); // Wait for call because Chromium requires user interaction for audio
+    ACTX = new AudioContext(); // Wait for call because Chromium requires user interaction for audio
 
     for (let note = 1; note <= 11; note++) {
       this.urls.push(baseUrl + '/' + note + '.wav');
@@ -25,13 +25,11 @@ export default class Patch {
   async load() {
     for (var i = 0; i < this.urls.length; ++i) {
       const bufferLoader = new BufferLoader(ACTX);
-      this.aBuffers.push(
-        await bufferLoader.load(this.urls[i])
-      );
+      this.aBuffers.push(await bufferLoader.load(this.urls[i]));
     }
 
     return this.aBuffers;
-  };
+  }
 
   /** Play at the specified pitch, optinally specifying gain and pan */
   playNow(pitch, gain = 1, pan = 0) {
@@ -46,4 +44,4 @@ export default class Patch {
     this.panNode.connect(ACTX.destination);
     node.start(0);
   }
-};
+}
