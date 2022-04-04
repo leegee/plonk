@@ -19,7 +19,7 @@ export default class Plonk {
 	patchIndex = 1;							// Initial patch= 0 must be percission
 	gain = 1;										// volume
 	pan = 0;										// pan
-	userId = 'Plonker';					// Displayed by cursor
+	userId = 'Plonker-' +  (Math.random() + 1).toString(36).substring(2, 5);		// Displayed by cursor
 	patches = [];								// Loaded on instantiation
 	percNames = ['kick', 'snare', 'hat_closed'];	// For ease of programming
 
