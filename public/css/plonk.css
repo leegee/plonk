@@ -1,6 +1,5 @@
-body {
-	background: pink;
-	color: black;
+html, body {
+	background: black;
 	border: none;
 	margin: 0;
 	padding: 0;
@@ -60,4 +59,8 @@ canvas {
 	margin: 1px;
 	width: 1em;
 	height: 1em;
+}
+
+#xcontrols {
+	display: none;
 }

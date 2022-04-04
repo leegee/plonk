@@ -6,7 +6,8 @@ const plonk = new Plonk({
   xcontrolsElement: 'xcontrols',
   wsUri: 'ws://127.0.0.1:3000/'
 });
-;
+
+plonk.init();
 
 window.addEventListener('click', () => {
   plonk.run();

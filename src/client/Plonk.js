@@ -72,6 +72,9 @@ export default class Plonk {
   async run() {
     const promises = [];
     this.patches = [];
+
+		document.getElementById('xcontrols').style.display = 'bllock';
+
     this.options.patches.forEach((patchConfig) => {
       const patch = new Patch(
         patchConfig.uri,
@@ -83,8 +86,8 @@ export default class Plonk {
 
     await Promise.allSettled(promises);
 
-    this.makeGUI();
     this.connect();
+    this.makePatchSelectors();
   }
 
   initEvents() {
@@ -119,28 +122,45 @@ export default class Plonk {
     clearInterval(this.pulseTimer);
   }
 
-  makeGUI() {
+  init() {
     this.ctrlsEl = document.getElementById(this.options.xcontrolsElement);
     this.element = document.getElementById(this.options.element);
     this.canvas = document.getElementById('canvas');
-    this.usernameEl = document.getElementById('username');
-    this.usernameEl.value = this.userId;
-    this.usernameEl.addEventListener('change', () => {
-      this.userId = this.usernameEl.value;
-    });
 
     const rect = this.element.getBoundingClientRect();
     this.canvas.width = rect.width;
     this.canvas.height = rect.height;
     this.options.cursorX = rect.width - this.options.cursorRadius;
 
+		this.usernameEl = document.getElementById('username');
+    this.usernameEl.value = this.userId;
+    this.usernameEl.addEventListener('change', () => {
+      this.userId = this.usernameEl.value;
+    });
+
     this.ctx = this.canvas.getContext('2d');
+    this.ctx.font = '32px sans-serif';
+
+    // Initial message on canvas:
+    this.ctx.beginPath();
+    this.ctx.strokeStyle = this.ctx.fillStyle = '#FFF7';
+    this.ctx.fillText(
+      'CLICK TO START',
+      this.canvas.width / 2 - 200,
+      this.canvas.height / 2 - 18
+    );
+    this.ctx.closePath();
     this.ctx.font = '12px Sans';
 
-    /** The height of a pitch on the canvas */
-    this._cavnasUnit =
-      this.canvas.offsetHeight / this.patches[0].aBuffers.length;
+    // X-cursor options:
+    ['nothing', 'volume', 'pan'].forEach((i) => {
+      document
+        .getElementById(i)
+        .addEventListener('change', (e) => (this.xCtrl = i));
+    });
+  }
 
+  makePatchSelectors() {
     // Controls for patch change:
     for (let i = 0; i < this.patches.length; i++) {
       const el = document.createElement('span');
@@ -151,22 +171,10 @@ export default class Plonk {
       );
       el.addEventListener('click', (e) => {
         e.stopPropagation();
-        console.info(
-          'Set patch to ' + i,
-          this.patches[i],
-          e.target.dataset.patch
-        );
         this.patchIndex = i;
       });
       this.ctrlsEl.appendChild(el);
     }
-
-    // X-cursor options:
-    ['nothing', 'volume', 'pan'].forEach((i) => {
-      document
-        .getElementById(i)
-        .addEventListener('change', (e) => (this.xCtrl = i));
-    });
   }
 
   connect() {
@@ -382,6 +390,9 @@ export default class Plonk {
     this.ctx.lineWidth = 1;
     this.ctx.fillStyle = null;
     this.ctx.strokeStyle = '#555';
+
+		/** The height of a pitch on the canvas */
+		this._cavnasUnit = this.canvas.offsetHeight / this.patches[0].aBuffers.length;
 
     for (let i = 1; i <= this.patches[0].aBuffers.length; i++) {
       this.ctx.beginPath();
