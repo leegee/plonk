@@ -24,24 +24,18 @@ export default class Plonk {
   percNames = ['kick', 'snare', 'hat_closed']; // For ease of programming
 
   options = {
-    element: null, // DOM element into which to insert this app
-    xcontrolsElement: null, // Element into which to place controller options
+    element: 'app-container', // DOM element into which to insert this app
+    xcontrolsElement: 'xcontrols', // Element into which to place controller options
     cursorX: null, // x position of cursor relative to canvas
     cursorRadius: 5, // Circles that represent sound
-    cursorScaleIncrement: 0.3, // Amount by which to increase cursor size
     initialScaleFactor: 0.4, // Relates to changing size of circles
-
-    scrollPx: 4, // Pixels to scroll each scrollMS
-    scrollMS: 1000 / 32, // Frames per second
+    cursorScaleIncrement: 0.3, // Amount by which to increase cursor size
 
     pulseMS: 1000 / 8, // Sending to server, and rendering sound and cursors
 
-    // Sounds:
-    patchHeight: 20, // Patch selector
-    patchWidth: 20, // Patch selector
-
     // XXX TODO Replace these bland colours:
     patchClrs: ['purple', 'indigo', 'blue', 'green', 'yellow', 'orange', 'red'],
+
     // These always pulse:
     percussion: {
       kick: [[4, 1]],
@@ -69,7 +63,8 @@ export default class Plonk {
     this.options = { ...this.options, ...options };
   }
 
-  async run() {
+  /** Loads patches then renders their switch controls to the GUI */
+  async init() {
     const promises = [];
     this.patches = [];
 
@@ -91,9 +86,8 @@ export default class Plonk {
   }
 
   initEvents() {
-    // React to movement of the mouse
+    // React to movement of the mouse - make co-ords absolute within canvas
     this.canvas.addEventListener('mousemove', (e) => {
-      // Make co-ords absolute within canvas
       this.x = e.pageX;
       this.y = e.pageY;
     });
@@ -112,7 +106,7 @@ export default class Plonk {
 
     window.requestAnimationFrame(this.scroll.bind(this));
 
-    /** Periodically send the cursor position and redraw */
+    // Periodically send the cursor position and redraw
     this.pulseTimer = setInterval(this.pulse.bind(this), this.options.pulseMS);
   }
 
@@ -122,7 +116,8 @@ export default class Plonk {
     clearInterval(this.pulseTimer);
   }
 
-  init() {
+  /** Prepare GUI */
+  run() {
     this.ctrlsEl = document.getElementById(this.options.xcontrolsElement);
     this.element = document.getElementById(this.options.element);
     this.canvas = document.getElementById('canvas');
@@ -157,6 +152,12 @@ export default class Plonk {
       document
         .getElementById(i)
         .addEventListener('change', (e) => (this.xCtrl = i));
+    });
+
+    window.addEventListener('click', () => {
+      plonk.run();
+    }, {
+      once: true
     });
   }
 

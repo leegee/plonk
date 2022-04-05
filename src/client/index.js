@@ -7,10 +7,5 @@ const plonk = new Plonk({
   wsUri: 'ws://127.0.0.1:3000/'
 });
 
-plonk.init();
+plonk.run();
 
-window.addEventListener('click', () => {
-  plonk.run();
-}, {
-  once: true
-});
