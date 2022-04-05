@@ -64,7 +64,7 @@ export default class Plonk {
   }
 
   /** Loads patches then renders their switch controls to the GUI */
-  async init() {
+  async _init() {
     const promises = [];
     this.patches = [];
 
@@ -85,6 +85,7 @@ export default class Plonk {
     this.makePatchSelectors();
   }
 
+  /** Sets up mouse events, animation calls, and pulse timer */
   initEvents() {
     // React to movement of the mouse - make co-ords absolute within canvas
     this.canvas.addEventListener('mousemove', (e) => {
@@ -155,14 +156,14 @@ export default class Plonk {
     });
 
     window.addEventListener('click', () => {
-      this.init();
+      this._init();
     }, {
       once: true
     });
   }
 
+  /** Controls for patch change */
   makePatchSelectors() {
-    // Controls for patch change:
     for (let i = 0; i < this.patches.length; i++) {
       const el = document.createElement('span');
       el.setAttribute('class', 'patch');
@@ -178,6 +179,7 @@ export default class Plonk {
     }
   }
 
+  /** Connects web socket, sets up socket event handlers */
   connect() {
     if (!window.WebSocket) {
       throw new Error('This browser does not support Web Sockets');
@@ -194,6 +196,7 @@ export default class Plonk {
     this.websocket.onopen = this.open.bind(this);
   }
 
+  /** When socket connects, calls initEvents */
   open() {
     console.log('Enter open');
     this.initEvents();
@@ -207,15 +210,14 @@ export default class Plonk {
     throw e;
   }
 
-  /* Receive data on all connected users' cursors, including
-		 our own, which are stored in the caller and rendered by
-		 at regular intervals, elsewhere. */
+  /** Receive data on all connected users' cursors, including
+		 our own, which are elsewhere rendered at regular intervals */
   receive(e) {
     const res = JSON.parse(e.data);
     this.cursors = res.cursors;
   }
 
-  /* Send the user options and cursor position. */
+  /** Send the user options and cursor position. */
   send() {
     if (!this.y) {
       return;
@@ -247,6 +249,7 @@ export default class Plonk {
     this.websocket.send(msg);
   }
 
+  /** Converts pitch within the available patch to veritcal screen  position */
   yFromPitchIndexFrom(pitchIndex) {
     return parseInt(
       this.canvas.height -
@@ -255,6 +258,7 @@ export default class Plonk {
     );
   }
 
+  /** Converts veritcal screen position to pitch within the available patch */
   pitchIndexFromY(y) {
     return parseInt(
       ((this.canvas.height - y) / this.canvas.height) *
@@ -262,10 +266,10 @@ export default class Plonk {
     );
   }
 
-  /* Send current user-state data to the server.
-		 Render all stored cursors visually,
-		 play the latest generation of cursors.
-		 play whatever percussion we have  */
+  /** Send current user-state data to the server.
+		  Render all stored cursors visually,
+		  play the latest generation of cursors.
+		  play whatever percussion we have  */
   pulse() {
     this.send();
 
@@ -330,8 +334,7 @@ export default class Plonk {
     }
   }
 
-  /* Render visually a single cursor
-		 Note the bad JSON type-casting from server. */
+  /** Render visually a single cursor. */
   drawCursor(cursor, x, generation) {
     const y = this.yFromPitchIndexFrom(cursor.pitch);
 
@@ -368,10 +371,9 @@ export default class Plonk {
     }
   }
 
-  /* Scroll the screen.
-		 No longer copies the canvas and pastes as an image -
-		 that was too heavy. Now calls for a rendering of
-		 every cursor stored. */
+  /** Scroll the screen.
+		 (No longer copies the canvas and pastes as an image -
+		 that was too heavy. Now calls for a rendering of every cursor stored.) */
   scroll() {
     if (!this.cursorStack) {
       console.debug('No cursors');
