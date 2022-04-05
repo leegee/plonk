@@ -30,6 +30,7 @@
     "@webpack-cli/generators": "^2.4.2",
     "babel-jest": "^27.5.1",
     "babel-loader": "^8.2.4",
+    "babel-preset-modern-browsers": "^15.0.2",
     "bufferutil": "^4.0.6",
     "css-loader": "^6.7.1",
     "d": "^1.0.1",
@@ -62,6 +63,10 @@
     "@babel/runtime": "^7.17.8"
   },
   "jest": {
-    "verbose": true
+    "verbose": true,
+    "testEnvironment": "jsdom",
+    "transform": {
+      "^.+\\.js$": "babel-jest"
+    }
   }
 }
