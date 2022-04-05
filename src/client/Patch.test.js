@@ -4,7 +4,7 @@ window.AudioContext = jest.fn().mockImplementation(() => {
   return {}
 });
 
-test('Load pluck', () => {
+test('Patch', () => {
   const patch = new Patch({ uri: 'samples/pluck' });
   expect(patch).toBeInstanceOf(Patch);
 

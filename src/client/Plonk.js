@@ -63,12 +63,16 @@ export default class Plonk {
     this.options = { ...this.options, ...options };
   }
 
-  /** Loads patches then renders their switch controls to the GUI */
+  /** Loads patches then renders their switch controls to the GUI.
+   * Must be called after user interactin.
+   */
   async _init() {
     const promises = [];
     this.patches = [];
 
-		document.getElementById('xcontrols').style.display = 'bllock';
+    document.getElementById(
+      this.options.xcontrolsElement
+    ).style.display = 'block';
 
     this.options.patches.forEach((patchConfig) => {
       const patch = new Patch(
@@ -177,6 +181,9 @@ export default class Plonk {
       });
       this.ctrlsEl.appendChild(el);
     }
+
+    /** The height of a pitch on the canvas */
+		this._cavnasUnit = this.canvas.offsetHeight / this.patches[0].aBuffers.length;
   }
 
   /** Connects web socket, sets up socket event handlers */
@@ -252,9 +259,7 @@ export default class Plonk {
   /** Converts pitch within the available patch to veritcal screen  position */
   yFromPitchIndexFrom(pitchIndex) {
     return parseInt(
-      this.canvas.height -
-        pitchIndex *
-          (this.canvas.height / this.patches[this.patchIndex].aBuffers.length)
+      this.canvas.height - ( pitchIndex * this._cavnasUnit )
     );
   }
 
@@ -344,16 +349,16 @@ export default class Plonk {
       this.ctx.strokeStyle = this.ctx.fillStyle = '#EEE';
       this.ctx.fillText(
         cursor.userId,
-        x - this.options.cursorRadius * 2 * cursor.scaleCursor,
-        y - this.options.cursorRadius * 2 * cursor.scaleCursor,
+        x - (this.options.cursorRadius * 2 * cursor.scaleCursor),
+        y - (this.options.cursorRadius * 2 * cursor.scaleCursor),
         200
       );
       this.ctx.closePath();
     }
 
     this.ctx.beginPath();
-    this.ctx.fillStyle = this.ctx.strokeStyle =
-      this.options.patchClrs[cursor.patch];
+    this.ctx.fillStyle = this.ctx.strokeStyle = this.options.patchClrs[cursor.patch];
+
     this.ctx.arc(
       x,
       y,
@@ -393,9 +398,6 @@ export default class Plonk {
     this.ctx.lineWidth = 1;
     this.ctx.fillStyle = null;
     this.ctx.strokeStyle = '#555';
-
-		/** The height of a pitch on the canvas */
-		this._cavnasUnit = this.canvas.offsetHeight / this.patches[0].aBuffers.length;
 
     for (let i = 1; i <= this.patches[0].aBuffers.length; i++) {
       this.ctx.beginPath();

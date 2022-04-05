@@ -27,8 +27,6 @@ export default class Patch {
       const bufferLoader = new BufferLoader(ACTX);
       this.aBuffers.push(await bufferLoader.load(this.urls[i]));
     }
-
-    return this.aBuffers;
   }
 
   /** Play at the specified pitch, optinally specifying gain and pan */
