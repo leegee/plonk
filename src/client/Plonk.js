@@ -155,7 +155,7 @@ export default class Plonk {
     });
 
     window.addEventListener('click', () => {
-      plonk.run();
+      this.init();
     }, {
       once: true
     });
